@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    name: Build & self-test (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build universal app + self-test
+        run: Scripts/build.sh --universal --version "0.0.0-ci"
+
+      - name: Verify binary architectures
+        run: |
+          lipo -info build/CaffeinateBar.app/Contents/MacOS/CaffeinateBar | grep -q "x86_64 arm64"
+
+      - name: Verify bundle layout
+        run: |
+          test -f build/CaffeinateBar.app/Contents/Resources/AppIcon.icns
+          test -f build/CaffeinateBar.app/Contents/Resources/en.lproj/Localizable.strings
+          test -f build/CaffeinateBar.app/Contents/Resources/es.lproj/Localizable.strings

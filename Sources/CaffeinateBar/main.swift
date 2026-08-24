@@ -1,16 +1,25 @@
 import Cocoa
 
+// MARK: - Localization
+
+/// Convenience wrapper: NSLocalizedString + format args in one call.
+func L(_ key: String, _ args: CVarArg...) -> String {
+    String(format: NSLocalizedString(key, comment: ""), arguments: args)
+}
+
+// MARK: - Constants
+
 private let keepDisplayKey = "keepDisplayAwake"
 private let caffeinatePath = "/usr/bin/caffeinate"
 
 private let presets: [(String, Int)] = [
-    ("Indefinido", 0),
-    ("15 minutos", 15),
-    ("30 minutos", 30),
-    ("1 hora", 60),
-    ("2 horas", 120),
-    ("5 horas", 300),
-    ("8 horas (jornada)", 480),
+    ("preset.indefinite", 0),
+    ("preset.15m", 15),
+    ("preset.30m", 30),
+    ("preset.1h", 60),
+    ("preset.2h", 120),
+    ("preset.5h", 300),
+    ("preset.8h", 480),
 ]
 
 /// Aviso visual cuando queda poco. nil = sin límite, nunca avisa.
@@ -26,6 +35,8 @@ func clock(_ seconds: Int) -> String {
     let (h, m, sec) = (s / 3600, (s % 3600) / 60, s % 60)
     return h > 0 ? String(format: "%d:%02d:%02d", h, m, sec) : String(format: "%d:%02d", m, sec)
 }
+
+// MARK: - Controller
 
 final class Controller: NSObject, NSMenuDelegate {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -50,7 +61,7 @@ final class Controller: NSObject, NSMenuDelegate {
         render()
     }
 
-    // MARK: - caffeinate
+    // MARK: caffeinate
 
     private func start() {
         stop()
@@ -102,11 +113,11 @@ final class Controller: NSObject, NSMenuDelegate {
         liveStatus?.title = status()
     }
 
-    // MARK: - barra
+    // MARK: barra
 
     private func render() {
         let image = NSImage(systemSymbolName: isActive ? "cup.and.saucer.fill" : "cup.and.saucer",
-                            accessibilityDescription: "Caffeinate")
+                            accessibilityDescription: L("a11y.cup"))
         image?.isTemplate = true
         item.button?.image = image
         item.button?.contentTintColor = (isActive && isWarning(remaining)) ? .systemOrange : nil
@@ -114,12 +125,12 @@ final class Controller: NSObject, NSMenuDelegate {
     }
 
     private func status() -> String {
-        guard isActive else { return "Inactivo — el Mac puede dormirse" }
-        guard let left = remaining else { return "Activo — sin límite" }
-        return "Activo — quedan \(clock(left))"
+        guard isActive else { return L("status.inactive") }
+        guard let left = remaining else { return L("status.activeUnlimited") }
+        return L("status.activeRemaining", clock(left))
     }
 
-    // MARK: - menú
+    // MARK: menú
 
     private weak var liveStatus: NSMenuItem?
 
@@ -127,16 +138,16 @@ final class Controller: NSObject, NSMenuDelegate {
         menu.removeAllItems()
 
         liveStatus = menu.addItem(withTitle: status(), action: nil, keyEquivalent: "")
-        let toggle = menu.addItem(withTitle: isActive ? "Desactivar" : "Activar",
+        let toggle = menu.addItem(withTitle: L(isActive ? "menu.deactivate" : "menu.activate"),
                                   action: #selector(toggleActive), keyEquivalent: "")
         toggle.target = self
 
         menu.addItem(.separator())
-        let header = NSMenuItem(title: "Duración", action: nil, keyEquivalent: "")
+        let header = NSMenuItem(title: L("menu.duration"), action: nil, keyEquivalent: "")
         header.isEnabled = false
         menu.addItem(header)
-        for (title, mins) in presets {
-            let i = menu.addItem(withTitle: title, action: #selector(pickPreset(_:)), keyEquivalent: "")
+        for (key, mins) in presets {
+            let i = menu.addItem(withTitle: L(key), action: #selector(pickPreset(_:)), keyEquivalent: "")
             i.target = self
             i.tag = mins
             i.state = (isActive && minutes == mins) ? .on : .off
@@ -144,13 +155,13 @@ final class Controller: NSObject, NSMenuDelegate {
         }
 
         menu.addItem(.separator())
-        let d = menu.addItem(withTitle: "Mantener la pantalla encendida",
+        let d = menu.addItem(withTitle: L("menu.keepDisplay"),
                              action: #selector(toggleDisplay), keyEquivalent: "")
         d.target = self
         d.state = keepDisplay ? .on : .off
 
         menu.addItem(.separator())
-        let q = menu.addItem(withTitle: "Salir", action: #selector(quit), keyEquivalent: "q")
+        let q = menu.addItem(withTitle: L("menu.quit"), action: #selector(quit), keyEquivalent: "q")
         q.target = self
     }
 
@@ -174,6 +185,8 @@ final class Controller: NSObject, NSMenuDelegate {
     }
 }
 
+// MARK: - Self-test
+
 private func selfTest() -> Int32 {
     precondition(clock(0) == "0:00")
     precondition(clock(-5) == "0:00")
@@ -186,19 +199,22 @@ private func selfTest() -> Int32 {
     precondition(isWarning(600) == true)
     precondition(isWarning(0) == true)
 
+    // i18n: el bundle debe resolver las claves localizadas, no devolver la clave cruda.
+    precondition(L("status.inactive") != "status.inactive")
+
     let p = Process()
     p.executableURL = URL(fileURLWithPath: caffeinatePath)
     p.arguments = ["-i", "-t", "5"]
     do { try p.run() } catch {
-        print("FAIL: no se pudo lanzar caffeinate: \(error)")
+        print("FAIL: could not launch caffeinate: \(error)")
         return 1
     }
     usleep(300_000)
-    guard p.isRunning else { print("FAIL: caffeinate murió al arrancar (flags inválidos)"); return 1 }
+    guard p.isRunning else { print("FAIL: caffeinate died on startup (invalid flags)"); return 1 }
     p.terminate()
     p.waitUntilExit()
-    guard !p.isRunning else { print("FAIL: caffeinate sigue vivo tras terminate"); return 1 }
-    print("OK: formato y umbral de aviso correctos, caffeinate arranca y se detiene")
+    guard !p.isRunning else { print("FAIL: caffeinate still alive after terminate"); return 1 }
+    print("OK: clock format, warning threshold, localization and caffeinate lifecycle all pass")
     return 0
 }
 

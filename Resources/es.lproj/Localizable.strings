@@ -1,0 +1,23 @@
+/* Status bar tooltip / primera fila del menú */
+"status.inactive" = "Inactivo — el Mac puede dormirse";
+"status.activeUnlimited" = "Activo — sin límite";
+"status.activeRemaining" = "Activo — quedan %1$@";
+
+/* Acciones del menú */
+"menu.activate" = "Activar";
+"menu.deactivate" = "Desactivar";
+"menu.duration" = "Duración";
+"menu.keepDisplay" = "Mantener la pantalla encendida";
+"menu.quit" = "Salir de CaffeinateBar";
+
+/* Duraciones */
+"preset.indefinite" = "Indefinido";
+"preset.15m" = "15 minutos";
+"preset.30m" = "30 minutos";
+"preset.1h" = "1 hora";
+"preset.2h" = "2 horas";
+"preset.5h" = "5 horas";
+"preset.8h" = "8 horas (jornada)";
+
+/* Accesibilidad */
+"a11y.cup" = "Taza de café";

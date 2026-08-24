@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & publish release
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build universal app
+        run: Scripts/build.sh --universal --version "${GITHUB_REF_NAME#v}"
+
+      - name: Package
+        run: |
+          cd build
+          ditto -c -k --keepParent CaffeinateBar.app "CaffeinateBar-${GITHUB_REF_NAME}.zip"
+          shasum -a 256 "CaffeinateBar-${GITHUB_REF_NAME}.zip" > SHA256SUMS.txt
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            build/CaffeinateBar-"$GITHUB_REF_NAME".zip \
+            build/SHA256SUMS.txt \
+            --title "CaffeinateBar $GITHUB_REF_NAME" \
+            --generate-notes \
+            --latest
