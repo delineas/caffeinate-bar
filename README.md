@@ -77,7 +77,8 @@ The app reads `Localizable.strings` from the bundle. To add a language:
 
 ### Releases
 
-Releases are fully automated:
+Releases are fully automated — see [docs/RELEASING.md](docs/RELEASING.md)
+for the complete guide. Short version:
 
 1. Bump and tag: `git tag v1.2.3 && git push origin v1.2.3`
 2. GitHub Actions builds a universal binary, packages it with `ditto`, and

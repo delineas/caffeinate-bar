@@ -78,7 +78,8 @@ La app lee `Localizable.strings` del bundle. Para añadir un idioma:
 
 ### Releases
 
-Las releases son totalmente automatizadas:
+Las releases son totalmente automáticas — la guía completa está en
+[docs/RELEASING.md](docs/RELEASING.md) (en inglés). Resumen:
 
 1. Etiqueta: `git tag v1.2.3 && git push origin v1.2.3`
 2. GitHub Actions compila el binario universal, lo empaqueta con `ditto` y publica
